@@ -1,0 +1,11 @@
+{
+  project:
+    {
+      creation-date: "2026-03-30",
+      description: "An enclosure designed to treat my idiosyncratic combination of Atreus keyboard and Mecha Comet “trackpad” as a laptop.",
+      name: "frankentop",
+      repo: "sellout/frankentop",
+      summary: "A custom laptop enclosure",
+    },
+  type: { name: "haskell" },
+}
