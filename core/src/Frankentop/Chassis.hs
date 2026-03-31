@@ -20,6 +20,10 @@ where
 import safe "base" Control.Category ((.))
 import safe "base" Data.Bool (Bool (False, True))
 import safe "base" Data.Function (($))
+import safe "base" Data.Functor (fmap)
+import safe "base" Data.Int (Int)
+-- FIXME: Use a `Vec`.
+import safe "base" Data.List ((!!))
 import "implicit" Graphics.Implicit
   ( SymbolicObj2,
     SymbolicObj3,
@@ -128,17 +132,10 @@ knuckleOuterRadius, knuckleInnerRadius :: ℝ
 knuckleOuterRadius = knuckleInnerRadius + 3
 knuckleInnerRadius = 1.7
 
--- Two knuckles on base, outside Atreus x-range [36..279]
-k1x0, k1x1, k2x0, k2x1 :: ℝ
-k1x0 = 8
-k1x1 = 26
-k2x0 = width - 26
-k2x1 = width - 8
-
--- One knuckle on lid, centered, fits in the gap between base knuckles
-lkx0, lkx1 :: ℝ
-lkx0 = k1x1
-lkx1 = k2x0
+-- knuckle edges – one half should start even, end odd; the other start odd end
+-- even
+knuckleEdges :: [ℝ]
+knuckleEdges = [8, 26, width / 2 - 9, width / 2 + 9, width - 26, width - 8]
 
 knuckleDepthOffset :: ℝ
 knuckleDepthOffset = knuckleInnerRadius
@@ -240,6 +237,14 @@ rightCutPoly =
 profile :: SymbolicObj2
 profile = withRounding cornerRadius . square False $ V2 width depth
 
+knuckles :: ℝ -> ℝ -> [Int] -> SymbolicObj3
+knuckles cy cz =
+  union
+    . fmap
+      ( \start ->
+          knuckle cy cz (knuckleEdges !! start) $ knuckleEdges !! (start + 1)
+      )
+
 -- | Complete model of the laptop base.
 --
 -- @since 0.0.1
@@ -252,11 +257,11 @@ base =
         [ -- Combined Atreus+Comet pocket (depth 14 mm, floor at z=3)
           translate (V3 0 0 margin) $ extrude comboPoly cometHeight,
           -- Comet USB-C notch: 12×6 mm indicator on right outer wall
+          port True $ depth - 24, -- display
+          port True $ depth - 48, -- power
+          port True $ depth - 72, -- accessories
           port False $ depth - 72,
-          port True $ depth - 24,
-          port True $ depth - 48,
-          port True $ depth - 72,
-          knuckle (depth + knuckleDepthOffset) baseHeight lkx0 lkx1
+          knuckles (depth + knuckleDepthOffset) baseHeight [1, 3]
         ],
       -- Bottom feet (cylinders hanging below z=0)
       union
@@ -264,8 +269,7 @@ base =
         | (fx, fy) <- footPosition
         ],
       -- Two hinge knuckles on base rear edge, outside Atreus x-range
-      knuckle (depth + knuckleDepthOffset) baseHeight k1x0 k1x1,
-      knuckle (depth + knuckleDepthOffset) baseHeight k2x0 k2x1
+      knuckles (depth + knuckleDepthOffset) baseHeight [0, 2, 4]
     ]
 
 -- | Complete model of the laptop lid.
@@ -284,11 +288,10 @@ lid =
           -- Keyboard cutout: full-thickness trapezoid hole aligned with base pocket
           extrude leftCutPoly lidHeight,
           extrude rightCutPoly lidHeight,
-          knuckle (0 - knuckleDepthOffset) lidHeight k1x0 k1x1,
-          knuckle (0 - knuckleDepthOffset) lidHeight k2x0 k2x1
+          knuckles (0 - knuckleDepthOffset) lidHeight [0, 2, 4]
         ],
       -- One hinge knuckle on lid hinge edge, centred to interleave with base pair
-      knuckle (0 - knuckleDepthOffset) lidHeight lkx0 lkx1
+      knuckles (0 - knuckleDepthOffset) lidHeight [1, 3]
     ]
 
 -- | Complete model of the laptop, suitable for 3D printing.
