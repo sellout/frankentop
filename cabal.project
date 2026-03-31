@@ -10,6 +10,11 @@ jobs: $ncpus
 if impl(ghc >= 9.8)
   semaphore: True
 
+constraints:
+  -- Because Nix doesn’t automatically include the C zlib when building Haskell
+  -- zlib, and it’s hard to fix that correctly in the Nix environment.
+  zlib +bundled-c-zlib
+
 flags:
   -- Ensure development of this project always uses linters, even if it causes
   -- the solver to fail.
