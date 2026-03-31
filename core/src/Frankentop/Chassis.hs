@@ -1,3 +1,4 @@
+-- Due to "Graphics.Implicit" (but it becomes Safe-Inferred with v0.4.1.0).
 {-# LANGUAGE Trustworthy #-}
 
 -- |
@@ -12,6 +13,7 @@ module Frankentop.Chassis
     lidHeight,
     base,
     lid,
+    printableLayout,
   )
 where
 
@@ -28,8 +30,10 @@ import "implicit" Graphics.Implicit
     -- mirror,
     polygon,
     rotate3,
+    square,
     translate,
     union,
+    withRounding,
     ℝ,
   )
 import safe "linear" Linear.V2 (V2 (V2))
@@ -37,8 +41,8 @@ import safe "linear" Linear.V3 (V3 (V3))
 import safe "base" Prelude (max, pi, (*), (+), (-), (/))
 
 -- Shared footprint
-cham, width, depth, margin, cableChannel, thinMargin :: ℝ
-cham = 4 -- corner chamfer
+cornerRadius, width, depth, margin, cableChannel, thinMargin :: ℝ
+cornerRadius = margin
 
 -- | Overall width of the chassis (common to `base` & `lid`).
 --
@@ -119,12 +123,6 @@ sSy0 = sSy1 - screenDepth -- 65
 
 sPf = lidHeight - screenHeight -- 3   (pocket floor z)
 
--- ── File layout: lid placed above base, hinge edges adjacent ─────────────────
--- Base hinge: y = d = 190.  Lid hinge: y = loy.  Gap = 20 mm.
-loy :: ℝ
-loy = depth + 20 -- 210
--- (lox = 0, same x-origin as base, so widths are coincident in the file)
-
 -- ── Hinge knuckles: 3-knuckle interleave, M6-compatible bore ─────────────────
 knuckleOuterRadius, knuckleInnerRadius :: ℝ
 knuckleOuterRadius = knuckleInnerRadius + 3
@@ -163,20 +161,6 @@ aLy0 = depth - aRy1 -- 5
 aLyO = depth - aRyO -- 5
 aLy1 = depth - aRy0 -- 105
 
--- 8-vertex CCW chamfered-rectangle boundary polygon
-chamRect :: ℝ -> ℝ -> ℝ -> ℝ -> ℝ -> SymbolicObj2
-chamRect ox oy ww dd cc =
-  polygon
-    [ V2 (ox + cc) oy,
-      V2 (ox + ww - cc) oy,
-      V2 (ox + ww) $ oy + cc,
-      V2 (ox + ww) $ oy + dd - cc,
-      V2 (ox + ww - cc) $ oy + dd,
-      V2 (ox + cc) $ oy + dd,
-      V2 ox $ oy + dd - cc,
-      V2 ox $ oy + cc
-    ]
-
 -- Hollow tube along the X axis, centred at (y=cy, z=cz), from x=x0 to x=x1.
 --
 -- Build a hollow cylinder along Z (outer minus bore), then rotate 90° around
@@ -185,10 +169,13 @@ chamRect ox oy ww dd cc =
 -- After R_y(π/2): a point (x,y,z) → (z, y, −x), so the cylinder axis
 -- (originally 0..len along Z) becomes 0..len along X.  Translating by
 -- (x0, cy, cz) places the left face at (x0, cy, cz). ✓
-tubeX :: ℝ -> ℝ -> ℝ -> ℝ -> ℝ -> ℝ -> SymbolicObj3
-tubeX cy cz x0 x1 ro ri =
+knuckle :: ℝ -> ℝ -> ℝ -> ℝ -> SymbolicObj3
+knuckle cy cz x0 x1 =
   let len = x1 - x0
-      body = difference (cylinder ro len) [cylinder ri len]
+      body =
+        difference
+          (cylinder knuckleOuterRadius len)
+          [cylinder knuckleInnerRadius len]
       rotd = rotate3 (V3 0 (pi / 2) 0) body
    in translate (V3 x0 cy cz) rotd
 
@@ -225,14 +212,13 @@ comboPoly =
 leftCutPoly :: SymbolicObj2
 leftCutPoly =
   polygon
-    [ V2 aRx0 $ loy + aLy0,
-      V2 (aRx0 + 60) $ loy + aLy0,
-      V2 (aRx0 + 95) $ (loy + aLy0) + 15,
-      V2 ((width / 2) - 1.5) $ (loy + aLy0) + 60, -- narrow edge
-      -- V2 ((width / 2) - 1.5) $ loy + aLy0, -- narrow edge
-      V2 ((width / 2) - 5) $ loy + aLy1,
-      V2 aFliX $ loy + aLy1, -- wide edge
-      V2 aFlX $ loy + aLyO -- wide edge
+    [ V2 aRx0 aLy0,
+      V2 (aRx0 + 60) aLy0,
+      V2 (aRx0 + 95) $ aLy0 + 15,
+      V2 ((width / 2) - 1.5) $ aLy0 + 60, -- narrow edge
+      V2 ((width / 2) - 5) aLy1,
+      V2 aFliX aLy1, -- wide edge
+      V2 aFlX aLyO -- wide edge
     ]
 
 -- |
@@ -242,14 +228,17 @@ rightCutPoly :: SymbolicObj2
 -- rightCutPoly = mirror (V2 (width / 2) 0) leftCutPoly
 rightCutPoly =
   polygon
-    [ V2 (aRx1 - 60) $ loy + aLy0,
-      V2 aRx1 $ loy + aLy0, -- narrow edge
-      V2 aFrX $ loy + aLyO,
-      V2 aFriX $ loy + aLy1,
-      V2 ((width / 2) + 5) $ loy + aLy1,
-      V2 ((width / 2) + 1.5) $ loy + aLy0 + 60, -- wide edge
-      V2 (aRx1 - 95) $ (loy + aLy0) + 15
+    [ V2 (aRx1 - 60) aLy0,
+      V2 aRx1 aLy0, -- narrow edge
+      V2 aFrX aLyO,
+      V2 aFriX aLy1,
+      V2 ((width / 2) + 5) aLy1,
+      V2 ((width / 2) + 1.5) $ aLy0 + 60, -- wide edge
+      V2 (aRx1 - 95) $ aLy0 + 15
     ]
+
+profile :: SymbolicObj2
+profile = withRounding cornerRadius . square False $ V2 width depth
 
 -- | Complete model of the laptop base.
 --
@@ -259,15 +248,15 @@ base =
   union
     [ -- Chamfered shell with features subtracted
       difference
-        (extrude (chamRect 0 0 width depth cham) baseHeight)
+        (extrude profile baseHeight)
         [ -- Combined Atreus+Comet pocket (depth 14 mm, floor at z=3)
-          translate (V3 0 0 margin) (extrude comboPoly cometHeight),
+          translate (V3 0 0 margin) $ extrude comboPoly cometHeight,
           -- Comet USB-C notch: 12×6 mm indicator on right outer wall
           port False $ depth - 72,
           port True $ depth - 24,
           port True $ depth - 48,
           port True $ depth - 72,
-          tubeX (depth + knuckleDepthOffset) baseHeight lkx0 lkx1 knuckleOuterRadius knuckleInnerRadius
+          knuckle (depth + knuckleDepthOffset) baseHeight lkx0 lkx1
         ],
       -- Bottom feet (cylinders hanging below z=0)
       union
@@ -275,8 +264,8 @@ base =
         | (fx, fy) <- footPosition
         ],
       -- Two hinge knuckles on base rear edge, outside Atreus x-range
-      tubeX (depth + knuckleDepthOffset) baseHeight k1x0 k1x1 knuckleOuterRadius knuckleInnerRadius,
-      tubeX (depth + knuckleDepthOffset) baseHeight k2x0 k2x1 knuckleOuterRadius knuckleInnerRadius
+      knuckle (depth + knuckleDepthOffset) baseHeight k1x0 k1x1,
+      knuckle (depth + knuckleDepthOffset) baseHeight k2x0 k2x1
     ]
 
 -- | Complete model of the laptop lid.
@@ -287,17 +276,23 @@ lid =
   union
     [ -- Chamfered shell with features subtracted
       difference
-        (extrude (chamRect 0 loy width depth cham) lidHeight)
-        [ -- Screen receptacle: 300×125×4 mm, open at free edge (y=loy+d)
+        (extrude profile lidHeight)
+        [ -- Screen receptacle: 300×125×4 mm, open at free edge
           translate
-            (V3 sSx0 (loy + sSy0) sPf)
-            (cube False (V3 screenWidth screenDepth screenHeight)),
+            (V3 sSx0 sSy0 sPf)
+            $ cube False (V3 screenWidth screenDepth screenHeight),
           -- Keyboard cutout: full-thickness trapezoid hole aligned with base pocket
           extrude leftCutPoly lidHeight,
           extrude rightCutPoly lidHeight,
-          tubeX (loy - knuckleDepthOffset) lidHeight k1x0 k1x1 knuckleOuterRadius knuckleInnerRadius,
-          tubeX (loy - knuckleDepthOffset) lidHeight k2x0 k2x1 knuckleOuterRadius knuckleInnerRadius
+          knuckle (0 - knuckleDepthOffset) lidHeight k1x0 k1x1,
+          knuckle (0 - knuckleDepthOffset) lidHeight k2x0 k2x1
         ],
       -- One hinge knuckle on lid hinge edge, centred to interleave with base pair
-      tubeX (loy - knuckleDepthOffset) lidHeight lkx0 lkx1 knuckleOuterRadius knuckleInnerRadius
+      knuckle (0 - knuckleDepthOffset) lidHeight lkx0 lkx1
     ]
+
+-- | Complete model of the laptop, suitable for 3D printing.
+--
+-- @since 0.0.1
+printableLayout :: SymbolicObj3
+printableLayout = union [base, translate (V3 0 (depth + 20) 0) lid]

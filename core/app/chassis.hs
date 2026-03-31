@@ -1,3 +1,4 @@
+-- Due to "Graphics.Implicit" (but it becomes Safe-Inferred with v0.4.1.0).
 {-# LANGUAGE Trustworthy #-}
 
 -- |
@@ -18,7 +19,7 @@ import safe "base" Data.Semigroup ((<>))
 import safe "base" System.IO (IO, putStrLn)
 import safe "base" Text.Show (show)
 import safe "frankentop-chassis" Frankentop.Chassis qualified as Chassis
-import "implicit" Graphics.Implicit (union, writeSTL)
+import "implicit" Graphics.Implicit (writeSTL)
 import safe "base" Prelude ((+))
 
 -- | Generate STL files for the laptop chassis.
@@ -35,5 +36,5 @@ main = do
       <> show (Chassis.baseHeight + Chassis.lidHeight)
       <> " mm"
   let res = 0.5 -- mesh resolution in mm; raise to 1–2 for faster preview
-  writeSTL res "chassis.stl" $ union [Chassis.base, Chassis.lid]
+  writeSTL res "chassis.stl" $ Chassis.printableLayout
   putStrLn "Written: chassis.stl"
