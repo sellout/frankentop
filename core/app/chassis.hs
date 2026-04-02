@@ -36,5 +36,5 @@ main = do
       <> show (Chassis.baseHeight + Chassis.lidHeight)
       <> " mm"
   let res = 0.5 -- mesh resolution in mm; raise to 1–2 for faster preview
-  writeSTL res "chassis.stl" $ Chassis.printableLayout
+  writeSTL res "chassis.stl" Chassis.printableLayout
   putStrLn "Written: chassis.stl"

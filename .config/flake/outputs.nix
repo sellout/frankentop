@@ -105,9 +105,6 @@ in
       testedGhcVersions = system:
         [
           self.lib.defaultGhcVersion
-          "9.4.8"
-          "9.6.7"
-          "9.8.4"
           "9.10.2"
         ]
         ++ nixpkgs.lib.optionals (system != "i686-linux") [
@@ -117,19 +114,6 @@ in
       ## The versions that are older than those supported by Nix that we
       ## prefer to test against.
       nonNixTestedGhcVersions = [
-        "7.10.3"
-        "8.0.2"
-        "8.2.2"
-        "8.4.1"
-        "8.6.1"
-        "8.8.1"
-        "8.10.1"
-        "9.0.1"
-        "9.2.1"
-        "9.4.1"
-        "9.6.1"
-        ## since `cabal-plan-bounds` doesn’t work under Nix
-        "9.8.1"
         "9.10.1"
         "9.12.1"
         "9.14.1"
@@ -168,17 +152,10 @@ in
       pkgs
       (map self.lib.nixifyGhcVersion (self.lib.supportedGhcVersions system))
       cabalPackages
-      (hpkgs:
-        [self.projectConfigurations.${system}.packages.path]
-        ## NB: Haskell Language Server no longer supports GHC <9.6.
-        ++ nixpkgs.lib.optional
-        (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.6"
-          ## TODO: With Nixpkgs 25.11, HLS complains about conflicting package
-          ##       versions in these combinations, so skip it.
-          && !(pkgs.stdenv.hostPlatform.isLinux
-            && nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.8"
-            && nixpkgs.lib.versionOlder hpkgs.ghc.version "9.10"))
-        hpkgs.haskell-language-server);
+      (hpkgs: [
+        hpkgs.haskell-language-server
+        self.projectConfigurations.${system}.packages.path
+      ]);
 
     projectConfigurations =
       flaky.lib.projectConfigurations.haskell {inherit pkgs self;};

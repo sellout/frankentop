@@ -59,7 +59,7 @@ custom-setup
     --       9.8.3 include an older Cabal, so a newer one may need to be
     --       manually installed.
     Cabal >= 3.10.3 && < 99,
-    base ^>= {4.8.2, 4.9.0, 4.10.0, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0},
+    base ^>= {4.20.0, 4.21.0, 4.22.0},
     cabal-doctest ^>= {1.0.0},
 
 flag lint
@@ -73,7 +73,7 @@ flag lint
 common defaults
   default-language: GHC2024
   build-depends:
-    base ^>= {4.8.2, 4.9.0, 4.10.0, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0},
+    base ^>= {4.20.0, 4.21.0, 4.22.0},
     ghc-compat-plugin ^>= {0.1.0},
   ghc-options:
     -Weverything
@@ -111,7 +111,7 @@ common defaults
   if flag(lint)
     build-depends:
       henforcer ^>= {1.0.0},
-      no-recursion,
+      no-recursion ^>= {0.4.0},
     ghc-options:
       -fplugin Henforcer
       -fplugin NoRecursion
@@ -121,8 +121,8 @@ library
   hs-source-dirs:
     src
   build-depends:
-    implicit >= 0.4  && < 0.5,
-    linear,
+    implicit ^>= {0.4.1},
+    linear ^>= {1.23.3},
   exposed-modules:
     Frankentop.Chassis
 
@@ -133,7 +133,7 @@ executable chassis
   main-is: chassis.hs
   build-depends:
     frankentop-chassis,
-    implicit >= 0.4  && < 0.5,
+    implicit ^>= {0.4.1},
   ghc-options:
     -O2
     -threaded
@@ -145,7 +145,7 @@ test-suite doctests
     tests
   main-is: doctests.hs
   build-depends:
-    doctest,
+    doctest ^>= {0.24.3},
     frankentop-chassis,
   ghc-options:
     -Wno-missing-deriving-strategies

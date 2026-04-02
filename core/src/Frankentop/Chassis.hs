@@ -42,7 +42,7 @@ import "implicit" Graphics.Implicit
   )
 import safe "linear" Linear.V2 (V2 (V2))
 import safe "linear" Linear.V3 (V3 (V3))
-import safe "base" Prelude (max, pi, (*), (+), (-), (/))
+import safe "base" Prelude (max, negate, pi, (*), (+), (-), (/))
 
 -- Shared footprint
 cornerRadius, width, depth, margin, cableChannel, thinMargin :: ℝ
@@ -53,7 +53,7 @@ cornerRadius = margin
 -- @since 0.0.1
 width =
   max (screenWidth + 2 * margin) $
-    (max atreusWidth cometWidth) + 2 * margin
+    max atreusWidth cometWidth + 2 * margin
 
 -- | Overall depth of the chassis (common to `base` & `lid`)..
 --
@@ -288,10 +288,10 @@ lid =
           -- Keyboard cutout: full-thickness trapezoid hole aligned with base pocket
           extrude leftCutPoly lidHeight,
           extrude rightCutPoly lidHeight,
-          knuckles (0 - knuckleDepthOffset) lidHeight [0, 2, 4]
+          knuckles (negate knuckleDepthOffset) lidHeight [0, 2, 4]
         ],
       -- One hinge knuckle on lid hinge edge, centred to interleave with base pair
-      knuckles (0 - knuckleDepthOffset) lidHeight [1, 3]
+      knuckles (negate knuckleDepthOffset) lidHeight [1, 3]
     ]
 
 -- | Complete model of the laptop, suitable for 3D printing.

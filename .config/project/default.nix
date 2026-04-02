@@ -105,7 +105,7 @@
   services.haskell-ci = {
     inherit (self.lib) defaultGhcVersion;
     ghcVersions = self.lib.nonNixTestedGhcVersions;
-    cabalPackages = {"${config.project.name}" = "core";};
+    cabalPackages = {frankentop-chassis = "core";};
     ## The latest Stackage LTS that we also build on GitHub for.
     latestGhcVersion = "9.10.1";
   };
