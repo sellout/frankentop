@@ -7,11 +7,34 @@
 
 A custom laptop enclosure
 
-An enclosure designed to treat my idiosyncratic combination of Atreus keyboard and Mecha Comet “trackpad” as a laptop.
+An enclosure designed to treat my idiosyncratic combination of [Atreus keyboard](https://shop.keyboard.io/products/keyboardio-atreus) and [Mecha Comet](https://mecha.so/comet) “trackpad” as a laptop.
+
+## features
+
+- mechanical keyboard
+- adjustable screen height
+  - raised to reduce neck strain & prevent hands from obscuring it
+  - lowered (same height as standard laptops) for clear line-of-sight
+- “smart” trackpad[^1]
+- CPU can be removed & used as handheld phone/computer
+
+[^1]: The trackpad is the Mecha Comet’s screen, so you can have it be interactive in certain apps, etc.
+
+## caveats
+
+- looks crazy
+- keyboard protrudes through lid
+- specs limited by Mecha Comet
+  - it’s mainly intended to be used as more of a smart terminal – for example, leaning on distributed builds
+- trackpad is a bit small, and has a lip
+- can’t close laptop with screen attached[^2]
+- likely balance issues (especially when CPU is removed, but lowered screen may mitigate)
+
+[^2]: This could potentially be generalized to “with screen and keyboard attached”, but since we have to remove one anyway, removing the screen lets us slim down the laptop by ~4mm (modulo those big ol’ keycaps paking through).
 
 ## usage
 
-See [the package README](./core/README.md) for usage information.
+[The Haskell package in core/](./core/) generates an STL file for the enclosure.
 
 ## building
 
