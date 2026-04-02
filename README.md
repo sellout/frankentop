@@ -16,9 +16,11 @@ An enclosure designed to treat my idiosyncratic combination of [Atreus keyboard]
   - raised to reduce neck strain & prevent hands from obscuring it
   - lowered (same height as standard laptops) for clear line-of-sight
 - “smart” trackpad[^1]
-- CPU can be removed & used as handheld phone/computer
+- CPU/trackpad can be removed & used as handheld phone/computer
 
 [^1]: The trackpad is the Mecha Comet’s screen, so you can have it be interactive in certain apps, etc.
+
+dimensions: 309×185.4×22 mm
 
 ## caveats
 
@@ -30,7 +32,9 @@ An enclosure designed to treat my idiosyncratic combination of [Atreus keyboard]
 - can’t close laptop with screen attached[^2]
 - likely balance issues (especially when CPU is removed, but lowered screen may mitigate)
 
-[^2]: This could potentially be generalized to “with screen and keyboard attached”, but since we have to remove one anyway, removing the screen lets us slim down the laptop by ~4mm (modulo those big ol’ keycaps paking through).
+[^2]: This could potentially be generalized to “with screen and keyboard attached”, but since we have to remove one anyway, removing the screen lets us slim down the laptop by ~4mm (modulo those big ol’ keycaps poking through).
+
+![monochrome render of open laptop with components in place](./render.png)
 
 ## usage
 
@@ -38,7 +42,7 @@ An enclosure designed to treat my idiosyncratic combination of [Atreus keyboard]
 
 ## building
 
-Especially if you are unfamiliar with the haskell ecosystem, there is a Nix build (both with and without a flake). If you are unfamiliar with Nix, [Nix adjacent](...) can help you get things working in the shortest time and least effort possible.
+Especially if you are unfamiliar with the Haskell ecosystem, there is a Nix build (both with and without a flake). If you are unfamiliar with Nix, [Nix adjacent](...) can help you get things working in the shortest time and least effort possible.
 
 ### if you have `nix` installed
 

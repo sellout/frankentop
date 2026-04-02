@@ -13,6 +13,9 @@ module Frankentop.Chassis
     lidHeight,
     base,
     lid,
+    fullyOpen,
+    open,
+    closed,
     printableLayout,
   )
 where
@@ -31,7 +34,7 @@ import "implicit" Graphics.Implicit
     cylinder,
     difference,
     extrude,
-    -- mirror,
+    mirror,
     polygon,
     rotate3,
     square,
@@ -39,6 +42,7 @@ import "implicit" Graphics.Implicit
     union,
     withRounding,
     ℝ,
+    ℝ3,
   )
 import safe "linear" Linear.V2 (V2 (V2))
 import safe "linear" Linear.V3 (V3 (V3))
@@ -62,19 +66,18 @@ depth =
   max (screenDepth - thickScreenDepth + margin) $
     atreusDepth + cometDepth + 2 * (cableChannel + thinMargin)
 
-margin = 3 -- edge margin, floor thickness (both pieces)
+margin = 2 -- edge margin, floor thickness (both pieces) – see https://bigrep.com/posts/designing-wall-thickness-for-3d-printing/
 
 cableChannel = 5 -- width needed to run a cable
 
-thinMargin = 1 -- acceptable when it’s only a small part of a full margin
+thinMargin = 1.2 -- acceptable when it’s only a small part of a full margin
 
 -- ── Base plate ────────────────────────────────────────────────────────────────
-cometHeight, baseHeight :: ℝ
-cometHeight = 14 -- pocket depth = Comet device height
 
 -- | Thickness of the laptop base.
 --
 -- @since 0.0.1
+baseHeight :: ℝ
 baseHeight = cometHeight + margin -- 17
 
 -- Keyboardio Atreus: 243×100 mm body, 10° inward taper per half
@@ -92,23 +95,90 @@ aFliX = (width - 55) / 2 -- 36
 aFriX = (width + 55) / 2 -- 36 -- 279
 aFrX = aFlX + atreusWidth -- 279
 
+-- |
+--
+--  __TODO__: This is drawn in the correct place on the plane, but we should
+--            really just translate it later.
+atreusArea :: SymbolicObj2
+atreusArea =
+  polygon
+    [ V2 aFriX aRy0, -- right junction → Atreus front-right
+      V2 aFrX aRyO,
+      V2 aRx1 aRy1,
+      V2 aRx0 aRy1, -- Atreus rear edge
+      V2 aFlX aRyO,
+      V2 aFliX aRy0
+    ]
+
+atreusLeftKeys :: SymbolicObj2
+atreusLeftKeys =
+  polygon
+    [ V2 aRx0 aRy1,
+      V2 (aRx0 + 60) aRy1,
+      V2 (aRx0 + 95) $ aRy1 - 15,
+      V2 (aRx0 + 90) $ aRy1 - 55, -- not part of convex hull
+      V2 ((width / 2) - 1.5) $ aRy1 - 60, -- narrow edge
+      V2 ((width / 2) - 5) aRy0,
+      V2 aFliX aRy0, -- wide edge
+      V2 aFlX aRyO -- wide edge
+    ]
+
+atreusKeys :: SymbolicObj3
+atreusKeys =
+  extrude
+    ( union
+        [ atreusLeftKeys,
+          translate (V2 width 0) $ mirror (V2 1 0) atreusLeftKeys
+        ]
+    )
+    18
+
+atreusBody :: SymbolicObj3
+atreusBody = extrude atreusArea 10
+
+-- Atreus keyboard through-cutout polygon (CCW, lid absolute coords).
+
+leftCutPoly :: SymbolicObj2
+leftCutPoly =
+  polygon
+    [ V2 aRx0 aLy0,
+      V2 (aRx0 + 60) aLy0,
+      V2 (aRx0 + 95) $ aLy0 + 15,
+      V2 ((width / 2) - 1.5) $ aLy0 + 60, -- narrow edge
+      V2 ((width / 2) - 5) aLy1,
+      V2 aFliX aLy1, -- wide edge
+      V2 aFlX aLyO -- wide edge
+    ]
+
+rightCutPoly :: SymbolicObj2
+rightCutPoly = translate (V2 width 0) $ mirror (V2 1 0) leftCutPoly
+
+atreus :: SymbolicObj3
+atreus = union [atreusBody, translate (V3 0 0 10) atreusKeys]
+
 -- Mecha Comet: 155×73 mm body
-cometWidth, cometDepth, cometScreenOffset, cRx0, cRx1, cRy0, cRy1 :: ℝ
+cometWidth, cometDepth, cometHeight, cometScreenOffset, cRx0, cRy0, cRy1 :: ℝ
 cometWidth = 155
 cometDepth = 73
+cometHeight = 14
 -- FIXME: This is just a guess for now.
 cometScreenOffset = 20 -- distance from the center of the screen to the center of the comet
 cRx0 = (width - cometWidth) / 2 + cometScreenOffset -- 80
-cRx1 = cRx0 + cometWidth + cometScreenOffset -- 235
 cRy1 = aRy0 -- 85  (abuts Atreus front — no wall between pockets)
 cRy0 = cRy1 - cometDepth -- 12
+
+comet :: SymbolicObj3
+comet = cube False $ V3 cometWidth cometDepth cometHeight
+
+cometPosition :: ℝ3
+cometPosition = V3 cRx0 cRy0 margin
 
 -- ── Lid ───────────────────────────────────────────────────────────────────────
 -- UPERFECT 13.3" OLED display: step at 65 mm from top edge.
 --   Thick portion (8 mm, y=120..185): rests on lid surface, no pocket.
 --   Thin portion (4 mm, y= 65..190): goes into 4 mm receptacle, open at free edge.
 screenWidth, screenDepth, thickScreenDepth, screenHeight, lidHeight, sSx0, sSy0, sSy1, sPf :: ℝ
-screenWidth = 300
+screenWidth = 305
 screenDepth = 125
 thickScreenDepth = 65
 screenHeight = 4
@@ -126,6 +196,14 @@ sSy1 = depth -- 190  (receptacle aligned with free/display edge)
 sSy0 = sSy1 - screenDepth -- 65
 
 sPf = lidHeight - screenHeight -- 3   (pocket floor z)
+
+screen :: SymbolicObj3
+screen =
+  union
+    [ -- rect3 (V3 0 screenDepth -4) $ V3 screenWidth thickScreenDepth screenHeight,
+      translate (V3 0 screenDepth -4) . cube False $ V3 screenWidth thickScreenDepth 8,
+      cube False $ V3 screenWidth screenDepth screenHeight
+    ]
 
 -- ── Hinge knuckles: 3-knuckle interleave, M6-compatible bore ─────────────────
 knuckleOuterRadius, knuckleInnerRadius :: ℝ
@@ -187,53 +265,6 @@ port rightSide cy =
         . cube False
         $ V3 9 portDepth portHeight
 
--- Combined Atreus+Comet pocket polygon (CCW, absolute base coords).
--- The Comet rect and Atreus trapezoid share an edge at y=85; no wall between.
-comboPoly :: SymbolicObj2
-comboPoly =
-  polygon
-    [ V2 cRx0 cRy0,
-      V2 cRx1 cRy0, -- Comet front edge
-      V2 cRx1 cRy1,
-      V2 aFriX aRy0, -- right junction → Atreus front-right
-      V2 aFrX aRyO,
-      V2 aRx1 aRy1,
-      V2 aRx0 aRy1, -- Atreus rear edge
-      V2 aFlX aRyO,
-      V2 aFliX aRy0,
-      V2 cRx0 cRy1 -- Atreus front-left → left junction
-    ]
-
--- Atreus keyboard through-cutout polygon (CCW, lid absolute coords).
-
-leftCutPoly :: SymbolicObj2
-leftCutPoly =
-  polygon
-    [ V2 aRx0 aLy0,
-      V2 (aRx0 + 60) aLy0,
-      V2 (aRx0 + 95) $ aLy0 + 15,
-      V2 ((width / 2) - 1.5) $ aLy0 + 60, -- narrow edge
-      V2 ((width / 2) - 5) aLy1,
-      V2 aFliX aLy1, -- wide edge
-      V2 aFlX aLyO -- wide edge
-    ]
-
--- |
---
---  __TODO__: Calcluate this by mirroring `leftCutPoly`.
-rightCutPoly :: SymbolicObj2
--- rightCutPoly = mirror (V2 (width / 2) 0) leftCutPoly
-rightCutPoly =
-  polygon
-    [ V2 (aRx1 - 60) aLy0,
-      V2 aRx1 aLy0, -- narrow edge
-      V2 aFrX aLyO,
-      V2 aFriX aLy1,
-      V2 ((width / 2) + 5) aLy1,
-      V2 ((width / 2) + 1.5) $ aLy0 + 60, -- wide edge
-      V2 (aRx1 - 95) $ aLy0 + 15
-    ]
-
 profile :: SymbolicObj2
 profile = withRounding cornerRadius . square False $ V2 width depth
 
@@ -255,7 +286,8 @@ base =
       difference
         (extrude profile baseHeight)
         [ -- Combined Atreus+Comet pocket (depth 14 mm, floor at z=3)
-          translate (V3 0 0 margin) $ extrude comboPoly cometHeight,
+          translate (V3 0 0 margin) $ extrude atreusArea cometHeight,
+          translate cometPosition comet,
           -- Comet USB-C notch: 12×6 mm indicator on right outer wall
           port True $ depth - 24, -- display
           port True $ depth - 48, -- power
@@ -269,7 +301,10 @@ base =
         | (fx, fy) <- footPosition
         ],
       -- Two hinge knuckles on base rear edge, outside Atreus x-range
-      knuckles (depth + knuckleDepthOffset) baseHeight [0, 2, 4]
+      knuckles (depth + knuckleDepthOffset) baseHeight [0, 2, 4],
+      -- optional bits
+      translate (V3 0 0 margin) atreus,
+      translate cometPosition comet
     ]
 
 -- | Complete model of the laptop lid.
@@ -277,22 +312,56 @@ base =
 -- @since 0.0.1
 lid :: SymbolicObj3
 lid =
-  union
-    [ -- Chamfered shell with features subtracted
-      difference
-        (extrude profile lidHeight)
-        [ -- Screen receptacle: 300×125×4 mm, open at free edge
+  let -- Screen receptacle: 300×125×4 mm, open at free edge
+      positionedScreen = translate (V3 sSx0 sSy0 sPf) screen
+      _lowScreen = translate (V3 sSx0 (knuckleOuterRadius - knuckleInnerRadius) 7) screen
+   in union
+        [ -- Chamfered shell with features subtracted
+          difference
+            (extrude profile lidHeight)
+            [ positionedScreen,
+              -- Keyboard cutout: full-thickness trapezoid hole aligned with base pocket
+              extrude leftCutPoly lidHeight,
+              extrude rightCutPoly lidHeight,
+              knuckles (negate knuckleDepthOffset) lidHeight [0, 2, 4]
+            ],
+          -- One hinge knuckle on lid hinge edge, centred to interleave with base pair
+          knuckles (negate knuckleDepthOffset) lidHeight [1, 3],
+          -- optional bits
+          positionedScreen
+          -- _lowScreen
+        ]
+
+-- | Complete model of the laptop, open 0.5τ.
+--
+-- @since 0.0.1
+fullyOpen :: SymbolicObj3
+fullyOpen = open pi
+
+-- | Complete model of the laptop, closed.
+--
+-- @since 0.0.1
+closed :: SymbolicObj3
+closed = open 0
+
+-- | Complete model of the laptop, open.
+--
+-- @since 0.0.1
+open ::
+  -- | How many radians open the laptop is. `0` is closed, `pi` is opened flat.
+  ℝ ->
+  SymbolicObj3
+open radians =
+  let lidTranslation = V3 0 knuckleDepthOffset -lidHeight
+      rotatedLid =
+        translate (negate lidTranslation) . rotate3 (V3 (pi - radians) 0 0) $
+          translate lidTranslation lid
+   in union
+        [ base,
           translate
-            (V3 sSx0 sSy0 sPf)
-            $ cube False (V3 screenWidth screenDepth screenHeight),
-          -- Keyboard cutout: full-thickness trapezoid hole aligned with base pocket
-          extrude leftCutPoly lidHeight,
-          extrude rightCutPoly lidHeight,
-          knuckles (negate knuckleDepthOffset) lidHeight [0, 2, 4]
-        ],
-      -- One hinge knuckle on lid hinge edge, centred to interleave with base pair
-      knuckles (negate knuckleDepthOffset) lidHeight [1, 3]
-    ]
+            (V3 0 (depth + knuckleInnerRadius * 2) (baseHeight - lidHeight))
+            rotatedLid
+        ]
 
 -- | Complete model of the laptop, suitable for 3D printing.
 --
