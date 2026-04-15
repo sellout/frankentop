@@ -12,7 +12,7 @@ An enclosure designed to treat my idiosyncratic combination of [Atreus keyboard]
 ## features
 
 - mechanical keyboard
-- adjustable screen height
+- adjustable screen height (~60.6 mm)
   - raised to reduce neck strain & prevent hands from obscuring it
   - lowered (same height as standard laptops) for clear line-of-sight
 - “smart” trackpad[^1]
