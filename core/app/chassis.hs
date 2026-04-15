@@ -14,13 +14,14 @@ module Main
   )
 where
 
+import safe "base" Control.Category ((.))
 import safe "base" Data.Function (($))
 import safe "base" Data.Semigroup ((<>))
 import safe "base" System.IO (IO, putStrLn)
 import safe "base" Text.Show (show)
 import safe "frankentop-chassis" Frankentop.Chassis qualified as Chassis
-import "implicit" Graphics.Implicit (writeSTL)
-import safe "base" Prelude ((+))
+import "implicit" Graphics.Implicit (writeBinSTL)
+import safe "base" Prelude (pi, (*), (+), (/))
 
 -- | Generate STL files for the laptop chassis.
 --
@@ -35,6 +36,6 @@ main = do
       <> "×"
       <> show (Chassis.baseHeight + Chassis.lidHeight)
       <> " mm"
-  let res = 0.5 -- mesh resolution in mm; raise to 1–2 for faster preview
-  writeSTL res "chassis.stl" Chassis.printableLayout
+  let res = 2 -- 0.5 -- mesh resolution in mm; raise to 1–2 for faster preview
+  writeBinSTL res "chassis.stl" . Chassis.open $ 5 * pi / 9
   putStrLn "Written: chassis.stl"
